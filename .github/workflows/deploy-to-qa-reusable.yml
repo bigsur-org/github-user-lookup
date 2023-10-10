@@ -6,23 +6,19 @@ on:
       - main
   workflow_dispatch:
 
-env:
-  NODE_VERSION: '12.x'
-
 jobs:
-  
   build-and-test:
     name: 🧪 Build and Test Code
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node: ['10.x', '12.x', '14.x']
+        node: ['16.x', '18.x']
     
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Use Node.js ${{ matrix.node }}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node }}
     - name: npm install, build, and test
@@ -38,12 +34,12 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         # Make sure the actual branch is checked out when running on pull requests
         ref: ${{ github.head_ref }}
     - name: Prettify code
-      uses: creyD/prettier_action@v3.1
+      uses: creyD/prettier_action@v4.3
       with:
         prettier_options: --write **/*.{js,md}
       env:
@@ -56,17 +52,19 @@ jobs:
     needs: [build-and-test, prettier]
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0   
 
   # Call reusable workflow - https://github.com/rocket-labs-inc/centralized-actions/blob/main/.github/workflows/webapp-deploy.yml
-  call-deploy-sandbox:
-    name: 📦 Call Deploy - Sandbox
+  call-deploy-validate:
+    name: 📦 Call Deploy - Validate
     uses: rocket-labs-inc/centralized-actions/.github/workflows/webapp-deploy.yml@main
     with:
-      environment: sandbox
+      environment: validate
+      node-version: '16.x'
+      webapp-name: github-user-lookup
     secrets: inherit
     needs: [build-and-test, prettier]
 
@@ -75,5 +73,7 @@ jobs:
     uses: rocket-labs-inc/centralized-actions/.github/workflows/webapp-deploy.yml@main
     with:
       environment: qa
+      node-version: '16.x'
+      webapp-name: github-user-lookup
     secrets: inherit
-    needs: call-deploy-sandbox
+    needs: call-deploy-validate
